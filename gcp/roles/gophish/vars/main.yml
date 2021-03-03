@@ -1,0 +1,17 @@
+---
+# Ansible role for setting up a gophish server
+# author: Yael | @zkvL7
+#
+# annatar v1.0
+# Gophish role variables
+
+deps_apt: [
+  tmux,
+  vim,
+  zip
+]
+
+urls:
+  gophish:
+    file: gophish.zip
+    url: https://github.com/gophish/gophish/releases/download/v0.11.0/gophish-v0.11.0-linux-64bit.zip

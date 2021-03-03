@@ -1,0 +1,8 @@
+[webservers]
+10.11.12.13     ansible_connection=ssh        ansible_user=myuser
+
+[mailservers]
+10.13.12.11  		ansible_connection=ssh        ansible_user=myuser
+
+[mailservers:vars]
+ansible_python_interpreter=/usr/bin/python

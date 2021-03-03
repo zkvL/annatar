@@ -1,0 +1,9 @@
+---
+# Ansible role for setting up a postfix server
+# author: Yael | @zkvL7
+#
+# annatar v1.0
+# Postfix default variables
+
+domain: example.mx
+fqdn: "mail.{{ domain }}"

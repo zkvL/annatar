@@ -1,0 +1,25 @@
+---
+# Ansible role for issuing letsencrypt certificates
+# author: Yael | @zkvL7
+#
+# annatar v1.0
+# Letsencrypt tasks
+
+- name: Letsencrypt role tasks initiated
+  debug:
+    msg: "Issuing certificates for {{ issue_to }}"
+
+- name: Install Certbot & dependencies
+  apt:
+    name: "{{ item }}"
+  loop: "{{ deps_apt }}"
+
+- name: DNS validation
+  pause:
+    prompt: Make sure your domain A record is already replicated for {{ issue_to }}
+
+- name: Create certificates for {{ issue_to }}
+  shell: |
+    certbot --nginx certonly -d {{ issue_to }} -m mail@domain.com --agree-tos -n
+  args:
+    creates: "/etc/letsencrypt/live/{{ issue_to }}/privkey.pem"

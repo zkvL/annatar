@@ -1,0 +1,18 @@
+---
+# Ansible role for setting up virtual mailboxes
+# author: Yael | @zkvL7
+#
+# annatar v1.0
+# PostfixAdmin role variables
+
+deps_apt: [
+  acl,
+  dovecot-mysql,
+  mariadb-server,
+  postfixadmin,
+  postfix-mysql,
+]
+
+deps_python: [
+  pymysql,
+]

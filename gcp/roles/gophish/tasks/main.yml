@@ -1,0 +1,65 @@
+---
+# Ansible role for setting up a gophish server
+# author: Yael | @zkvL7
+#
+# annatar v1.0
+# Gophish tasks
+
+- name: Gophish role tasks initiated
+  debug:
+    msg: "Creating Gophish server for {{ domain }}"
+
+- name: Install utilities
+  apt:
+    name: "{{ item }}"
+  loop: "{{ deps_apt }}"
+
+- name: Create necessary directory structure
+  file: 
+    path: "{{ app_dir }}"
+    state: directory
+    mode: 0755
+
+- name: Install Gophish - download package
+  get_url:
+    url: "{{ item.value.url }}"
+    dest: "{{ app_dir }}/{{ item.value.file }}"
+    mode: 0755
+  with_dict: "{{ urls }}"
+  when: "'gophish' in item.key"
+
+- name: Install Gophish - unzip package
+  shell: |
+    cd {{ app_dir }} && unzip {{ item.value.file }} && chmod +x gophish
+  with_dict: "{{ urls }}"
+  when: "'gophish' in item.key"
+
+- name: Install Gophish - privkey certificate
+  copy:
+    src: "/etc/letsencrypt/live/{{ domain }}/privkey.pem" 
+    dest: "{{ app_dir }}/{{ domain }}.key"
+    mode: '0644'
+    remote_src: yes
+
+- name: Install Gophish - fullchain certificate
+  copy:
+    src: "/etc/letsencrypt/live/{{ domain }}/fullchain.pem"
+    dest: "{{ app_dir }}/{{ domain }}.crt"
+    mode: '0644'
+    remote_src: yes
+
+- name: Install Gophish - enable HTTPS
+  template:
+    src: config.j2
+    dest: "{{ app_dir }}/config.json"
+
+- name: Clean up
+  file:
+    path: "{{ app_dir }}/{{ item.value.file }}"
+    state: absent
+  with_dict: "{{ urls }}"
+  when: "'gophish' in item.key"
+
+- name: Gophish server installed
+  debug:
+    msg: "Server running on localhost:{{ admin_port }} Listener on {{ domain }}:{{ phish_port }}"

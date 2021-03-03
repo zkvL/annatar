@@ -1,0 +1,11 @@
+---
+# Ansible role for enabling dkim 
+# author: Yael | @zkvL7
+#
+# annatar v1.0
+# OpenDKIM role variables
+
+deps_apt: [
+  opendkim,
+  opendkim-tools,
+]

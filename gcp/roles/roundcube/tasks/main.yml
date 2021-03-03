@@ -1,0 +1,99 @@
+---
+# Ansible role for setting up a roundcube webmail app
+# author: Yael | @zkvL7
+#
+# annatar v1.0
+# Roundcube tasks
+
+- name: Roundcube role tasks initiated
+  debug:
+    msg: "Setting up a roundcube webmail app"
+
+- name: Install dependencies
+  apt:
+    name: "{{ item }}"
+  loop: "{{ deps_apt }}"
+
+- name: Install requierements - pip2
+  import_role: 
+    name: python-pip
+
+- name: Make sure pymysql is present
+  pip:
+    name: pymysql
+    state: present
+    executable: pip2
+
+- name: Configure MariaDB - create database
+  mysql_db:
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+    name: roundcube
+    state: present
+    collation: 'utf8_general_ci'
+    login_user: root
+
+- name: Configure MariaDB - create database user for roundcube database
+  mysql_user:
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+    name: roundcube
+    password: "{{ db_roundcubemail_pass }}"
+    priv: 'roundcube.*:ALL'
+    state: present
+  no_log: true
+
+- name: Download Roundcube
+  unarchive:
+    src: "{{ roundcube_url }}"
+    dest: /var/www/html/
+    remote_src: yes
+  args:
+    creates: "{{ roundcube_path }}"
+
+- name: Rename Roundcube folder
+  shell: |
+    mv /var/www/html/roundcubemail-1.4.8 {{ roundcube_path }}
+  args:
+    creates: "{{ roundcube_path }}"
+
+- name: Change Roundcube ownership
+  file:
+    path: /var/www/html/roundcubemail
+    owner: www-data
+    group: www-data
+    mode: '0755'
+    recurse: yes
+
+- name: Change webroot for {{ fqdn }}
+  lineinfile:
+    path: /etc/nginx/sites-available/{{ fqdn }}
+    regexp: '^(.*)root /var/www/html/{{ fqdn }};'
+    line: '\1root /var/www/html/roundcubemail;'
+    backrefs: yes
+
+- name: Restart services - Nginx
+  service:
+    name: nginx
+    state: restarted
+
+- name: Configure Roundcube config.inc.php file
+  template:
+    src: config.inc.php.j2
+    dest: "/var/www/html/roundcubemail/config/config.inc.php" 
+
+- name: Import initial tables to database
+  shell: |
+    mysql roundcube < {{ roundcube_path }}/SQL/mysql.initial.sql
+  ignore_errors: yes
+
+# - name: Finish set up
+#   pause:
+#     prompt: "Go to https://{{ fqdn }}/installer and finish the set up before continue"
+
+- name: Clean up - delete roundcube installer
+  file:
+    path: /var/www/html/roundcubemail/installer/
+    state: absent
+
+- name: Roundcube installer finished
+  debug:
+    msg: "Go to https://{{ fqdn }}/ to login and start using Roundcubemail"

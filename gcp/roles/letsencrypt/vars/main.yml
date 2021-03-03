@@ -1,0 +1,10 @@
+---
+# Ansible role for issuing letsencrypt certificates
+# author: Yael | @zkvL7
+#
+# annatar v1.0
+# Letsencrypt role variables
+
+deps_apt: [
+  python-certbot-nginx,
+]

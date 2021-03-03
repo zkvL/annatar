@@ -1,0 +1,9 @@
+---
+# Ansible role for setting up a gophish server
+# author: Yael | @zkvL7
+#
+# annatar v1.0
+# Gophish role dependencies
+
+# dependencies:
+#   - role: go

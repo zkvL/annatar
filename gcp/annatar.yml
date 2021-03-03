@@ -1,0 +1,44 @@
+---
+# Ansible playbook for setting up web and mail servers
+# author: Yael | @zkvL7
+#
+# annatar v1.0
+# 
+
+# These playbooks are examples for web and mail servers deployment
+# They are written to function according to the variables given in each role
+# but if you want to use the roles separately keep in mind that default variables
+# must be overwritten as needed. Refer to the ansible documentation for more 
+# information regarding this matter. 
+
+# The variables inside roles are thought to be standard and should be overwritten
+# within the playbook or -e command-line option only
+
+- name: Hosting & phishing capabilities 
+  hosts: webservers
+
+  roles:
+    - role: nginx
+      ignore_errors: no
+      become: true 
+      vars:
+        domain: "example.mx"
+        https_port: 8080
+    - { role: gophish, ignore_errors: no, become: true }
+
+- name: Mailing capabilities 
+  hosts: mailservers
+
+  roles:
+    - role: nginx
+      ignore_errors: no
+      become: true
+      vars:
+        domain: "example.mx"
+        fqdn: "mail.{{ domain }}" 
+    - { role: postfix, ignore_errors: no, become: true }
+    - { role: dovecot, ignore_errors: no, become: true }
+    - { role: opendkim, ignore_errors: no, become: true }
+    - { role: mailjet, ignore_errors: no, become: true }
+    - { role: postfixadmin, ignore_errors: no, become: true }
+    - { role: roundcube, ignore_errors: no, become: true }

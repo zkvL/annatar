@@ -1,0 +1,56 @@
+---
+# Ansible role for setting up an nginx web server
+# author: Yael | @zkvL7
+#
+# annatar v1.0
+# Nginx tasks
+
+- name: Nginx role tasks initiated
+  debug:
+    msg: "Creating nginx server for FQDN {{ fqdn }}"
+  
+- name: Install certificates 
+  include_role:
+    name: letsencrypt
+  vars:
+    issue_to: "{{ fqdn }}"
+
+- name: Install Nginx & dependencies
+  apt:
+    name: "{{ item }}"
+  loop: "{{ deps_apt }}"
+
+- name: Configure Nginx to allow HTTPS
+  shell: |
+    ufw allow 'Nginx Full'
+
+- name: Configure virtual host {{ webroot }} in sites-available
+  template:
+    src: sites.j2
+    dest: "/etc/nginx/sites-available/{{ fqdn }}"
+
+- name: Configure virtual host {{ webroot }} in sites-enabled
+  file:
+    src: /etc/nginx/sites-available/{{ fqdn }}
+    dest: /etc/nginx/sites-enabled/{{ fqdn }}
+    state: link
+
+- name: Configure Nginx - nginx.conf 
+  copy:
+    src: nginx.conf
+    dest: /etc/nginx/nginx.conf
+
+- name: Clean up - Remove default sites-available
+  file:
+    path: "/etc/nginx/sites-available/default"
+    state: absent
+
+- name: Clean up - Remove default sites-enabled
+  file:
+    path: "/etc/nginx/sites-enabled/default"
+    state: absent
+
+- name: Restart nginx service
+  service:
+    name: nginx
+    state: restarted

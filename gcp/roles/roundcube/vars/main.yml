@@ -1,0 +1,16 @@
+---
+# Ansible role for setting up a roundcube webmail app
+# author: Yael | @zkvL7
+#
+# annatar v1.0
+# Roundcube role variables
+
+roundcube_url: "https://github.com/roundcube/roundcubemail/releases/download/1.4.8/roundcubemail-1.4.8-complete.tar.gz"
+
+deps_apt: [
+  mariadb-server,
+]
+
+deps_python: [
+  pymysql,
+]

@@ -1,0 +1,11 @@
+---
+# Ansible role for setting up a gophish server
+# author: Yael | @zkvL7
+#
+# annatar v1.0
+# Gophish default variables
+
+app_dir: /opt/gophish
+admin_port: 3333
+phish_port: 443
+domain: example.mx

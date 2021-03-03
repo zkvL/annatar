@@ -1,0 +1,86 @@
+---
+# Ansible role for enabling dkim 
+# author: Yael | @zkvL7
+#
+# annatar v1.0
+# OpenDKIM tasks
+
+- name: OpenDKIM role tasks initiated
+  debug:
+    msg: "Setting up DKIM for domain {{ domain }}"
+
+- name: Install OpenDKIM & dependencies
+  apt:
+    name: "{{ item }}"
+  loop: "{{ deps_apt }}"
+
+- name: Add postfix user to opendkim group
+  user:
+    name: postfix
+    groups: opendkim
+    append: yes
+
+- name: Configure OpenDKIM main configuration file
+  copy:
+    src: opendkim.conf
+    dest: /etc/opendkim.conf
+
+- name: Create directory structure for OpenDKIM
+  file: 
+    path: /etc/opendkim/keys/{{ domain }}
+    state: directory
+    owner: opendkim
+    mode: 0755
+
+- name: Create signature table
+  template:
+    src: SigningTable.j2
+    dest: /etc/opendkim/SigningTable
+
+- name: Create table key
+  template:
+    src: KeyTable.j2
+    dest: /etc/opendkim/KeyTable
+
+- name: Add trusted hosts
+  template:
+    src: TrustedHosts.j2
+    dest: /etc/opendkim/TrustedHosts
+
+- name: Generate public/private keypair
+  shell: |
+    cd /etc/opendkim/keys/{{ domain }}
+    opendkim-genkey -b 2048 -d {{ domain }} -s mail 
+    chown opendkim:opendkim mail.private
+  args:
+    creates: /etc/opendkim/keys/{{ domain }}/mail.txt
+
+- name: TXT DNS record
+  pause:
+    prompt: "Copy the output key from /etc/opendkim/keys/{{ domain }}/mail.txt and generate a TXT record"
+
+- name: Connect Postfix to OpenDKIM
+  copy:
+    src: opendkim
+    dest: /etc/default/opendkim
+
+- name: Modify /etc/postfix/main.cf 
+  blockinfile:
+    path: /etc/postfix/main.cf
+    marker_begin: 'OpenDKIM'
+    marker_end: 'OpenDKIM'
+    block: |
+      milter_protocol = 6
+      milter_default_action = accept 
+      smtpd_milters = inet:localhost:12301 
+      non_smtpd_milters = $smtpd_milters
+
+- name: Restart services - Postfix
+  service:
+    name: postfix
+    state: restarted
+
+- name: Restart services - OpenDKIM
+  service:
+    name: opendkim
+    state: restarted

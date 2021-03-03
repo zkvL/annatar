@@ -1,0 +1,29 @@
+---
+# Ansible role for installing pip 2 on linux
+# author: Yael | @zkvL7
+#
+# annatar v1.0
+# Python Pip2 tasks
+
+- name: Check if pip2 is already installed
+  command: pip --version
+  ignore_errors: true
+  register: pip2_check
+
+- name: Install Pip2 - download get-pip
+  get_url: 
+    url: "{{ get_pip_url }}"
+    dest: /tmp/get-pip.py
+    mode: '0755'
+  when: pip2_check.rc != 0
+
+- name: Install Pip2 - execute get-pip
+  shell: |
+    python2 /tmp/get-pip.py
+  when: pip2_check.rc != 0
+
+- name: Clean up - delete get-pip
+  file:
+    path: "/tmp/get-pip.py"
+    state: absent
+  when: pip2_check.rc != 0

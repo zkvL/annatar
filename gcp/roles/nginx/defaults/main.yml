@@ -1,0 +1,13 @@
+---
+# Ansible role for setting up an nginx web server
+# author: Yael | @zkvL7
+#
+# annatar v1.0
+# Nginx default variables
+
+http_port: 80
+https_port: 443
+
+domain: example.mx
+fqdn: "{{ domain }}"
+webroot: "/var/www/html/{{ fqdn }}"

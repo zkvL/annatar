@@ -1,0 +1,36 @@
+server {
+    listen {{ http_port }};
+    server_name {{ fqdn }};
+    return 301 https://$host$request_uri;
+}
+ 
+server {
+    listen {{ https_port }} ssl http2;
+    server_name {{ fqdn }};
+    root {{ webroot }};
+    index index.php index.htm index.html;
+ 
+    access_log /var/log/nginx/{{ fqdn }}_access.log;
+    error_log /var/log/nginx/{{ fqdn }}_error.log;
+
+    ssl_certificate /etc/letsencrypt/live/{{ fqdn }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ fqdn }}/privkey.pem;
+ 
+    location / {
+        try_files $uri $uri/ /index.php?$args;
+    }
+ 
+    location ~ \.php(?:$|/) {
+        try_files $uri =404;
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param PATH_INFO $fastcgi_path_info;
+        fastcgi_param HTTPS on;
+        fastcgi_param modHeadersAvailable true;
+        fastcgi_pass unix:/run/php/php7.3-fpm.sock;
+        fastcgi_intercept_errors on;
+        fastcgi_buffers 4 256k;
+        fastcgi_busy_buffers_size 256k;
+    }
+}

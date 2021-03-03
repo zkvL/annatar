@@ -1,0 +1,62 @@
+---
+# Ansible role for setting up a dovecot server
+# author: Yael | @zkvL7
+#
+# annatar v1.0
+# Dovecot tasks
+
+- name: Dovecot role tasks initiated
+  debug:
+    msg: "Setting up a dovecot server for {{ domain }}"
+
+- name: Install dovecot & dependencies
+  apt:
+    update_cache: yes
+    name: "{{ item }}"
+  loop: "{{ deps_apt }}"
+
+- name: Configure dovecot - enable imap/pop3 protocols
+  copy:
+    src: dovecot.conf
+    dest: /etc/dovecot/dovecot.conf
+
+- name: Configure dovecot - mailbox location
+  copy:
+    src: 10-mail.conf
+    dest: /etc/dovecot/conf.d/10-mail.conf
+
+- name: Add dovecot user to mail group
+  user:
+    name: dovecot
+    groups: mail
+    append: yes
+
+- name: Configure dovecot - authentication method
+  copy:
+    src: 10-auth.conf
+    dest: /etc/dovecot/conf.d/10-auth.conf
+
+- name: Configure dovecot - ssl/tls encryption
+  template:
+    src: 10-ssl.j2
+    dest: /etc/dovecot/conf.d/10-ssl.conf
+
+- name: Configure dovecot - sasl authentication
+  copy:
+    src: 10-master.conf
+    dest: /etc/dovecot/conf.d/10-master.conf
+
+- name: Configure dovecot - auto-create sent & trash folder
+  copy:
+    src: 15-mailboxes.conf
+    dest: /etc/dovecot/conf.d/15-mailboxes.conf
+
+- name: Restart services - Dovecot
+  service:
+    name: dovecot
+    state: restarted
+
+- name: Restart services - Postfix
+  service:
+    name: postfix
+    state: restarted

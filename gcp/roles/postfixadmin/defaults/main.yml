@@ -1,0 +1,10 @@
+---
+# Ansible role for setting up virtual mailboxes
+# author: Yael | @zkvL7
+#
+# annatar v1.0
+# PostfixAdmin default variables
+
+domain: example.mx
+fqdn: "postfixadmin.{{ domain }}"
+db_postfixadmin_pass: "changeme"

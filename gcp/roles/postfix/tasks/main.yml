@@ -1,0 +1,34 @@
+---
+# Ansible role for setting up a postfix server
+# author: Yael | @zkvL7
+#
+# annatar v1.0
+# Postfix tasks
+
+- name: Postfix role tasks initiated
+  debug:
+    msg: "Setting up a postfix server for domain {{ domain }}"
+
+- name: Make sure hostname is correctly set to {{ fqdn }} 
+  hostname:
+    name: "{{ fqdn }}"
+
+- name: Install postfix & dependencies
+  apt:
+    name: "{{ item }}"
+  loop: "{{ deps_apt }}"
+
+- name: Configure postfix main.cf file
+  template:
+    src: main.j2
+    dest: /etc/postfix/main.cf
+
+- name: Configure postfix master.cf file
+  copy:
+    src: master.cf
+    dest: /etc/postfix/master.cf
+
+- name: Restart services - Postfix
+  service:
+    name: postfix
+    state: restarted

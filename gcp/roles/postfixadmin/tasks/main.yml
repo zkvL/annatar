@@ -1,0 +1,220 @@
+---
+# Ansible role for setting up virtual mailboxes
+# author: Yael | @zkvL7
+#
+# annatar v1.0
+# PostfixAdmin tasks
+
+- name: PostfixAdmin role tasks initiated
+  debug:
+    msg: "Setting up PostfixAdmin for virtual mailboxes for {{ domain }}"
+
+- name: Install requierements - pip2
+  import_role: 
+    name: python-pip
+
+- name: Install postfixadmin & dependencies
+  apt:
+    name: "{{ item }}"
+  loop: "{{ deps_apt }}"
+
+- name: Make sure pymysql is present for DB manipulation
+  pip:
+    name: pymysql
+    state: present
+    executable: pip2
+
+- name: Create postfixadmin database
+  mysql_db:
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+    name: postfixadmin
+    state: present
+    collation: 'utf8_general_ci'
+    login_user: root
+
+- name: Create postfixadmin database user
+  mysql_user:
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+    name: postfixadmin
+    password: "{{ db_postfixadmin_pass }}"
+    priv: 'postfixadmin.*:ALL'
+    state: present
+  no_log: true
+
+- name: Configure postfixadmin - postfixadmin.conf
+  template:
+    src: postfixadmin.j2
+    dest: /etc/dbconfig-common/postfixadmin.conf
+
+- name: Configure postfixadmin - dbconfig.inc.php
+  template:
+    src: dbconfig.j2
+    dest: /etc/postfixadmin/dbconfig.inc.php 
+
+- name: Create templates_c directory
+  file: 
+    path: /usr/share/postfixadmin/templates_c
+    state: directory
+    mode: '0755'
+
+- name: Give www-data user read, write and execute permissions
+  shell: |
+    setfacl -R -m u:www-data:rwx /usr/share/postfixadmin/templates_c
+
+- name: Use strong password scheme in PostfixAdmin
+  copy:
+    src: config.inc.php
+    dest: /etc/postfixadmin/config.inc.php
+
+- name: Create virtual host for postfixadmin
+  include_role:
+    name: nginx
+  vars:
+    fqdn: postfixadmin.{{ domain }}
+    webroot: "/usr/share/postfixadmin/public"
+
+- name: Create setup password
+  pause:
+    prompt: Go to https://postfixadmin.{{ domain }}/setup.php, create a setup password, edit /etc/postfixadmin/config.inc.php with the hash provided and add an admin account
+
+#
+# Configure Postfix to use MariaDB
+#
+
+- name: Configure Postfix to use MariaDB
+  debug:
+    msg: "Configuring Postfix to use MariaDB"
+
+- name: Add aditional parameters to main.cf
+  blockinfile:
+    path: /etc/postfix/main.cf
+    marker_begin: 'PostfixAdmin'
+    marker_end: 'PostfixAdmin'
+    block: |
+      virtual_mailbox_domains = proxy:mysql:/etc/postfix/sql/mysql_virtual_domains_maps.cf
+      virtual_mailbox_maps = proxy:mysql:/etc/postfix/sql/mysql_virtual_mailbox_maps.cf,proxy:mysql:/etc/postfix/sql/mysql_virtual_alias_domain_mailbox_maps.cf
+      virtual_alias_maps = proxy:mysql:/etc/postfix/sql/mysql_virtual_alias_maps.cf,proxy:mysql:/etc/postfix/sql/mysql_virtual_alias_domain_maps.cf,proxy:mysql:/etc/postfix/sql/mysql_virtual_alias_domain_catchall_maps.cf
+      virtual_transport = lmtp:unix:private/dovecot-lmtp
+
+      virtual_mailbox_base = /var/vmail
+      virtual_minimum_uid = 2000
+      virtual_uid_maps = static:2000
+      virtual_gid_maps = static:2000
+
+- name: Create dir /etc/postfix/sql/
+  file: 
+    path: /etc/postfix/sql/
+    state: directory
+    mode: 0640
+
+- name: Create mysql_virtual_domains_maps.cf file
+  template: 
+    src: mysql_virtual_domains_maps.j2
+    dest: /etc/postfix/sql/mysql_virtual_domains_maps.cf
+
+- name: Create mysql_virtual_mailbox_maps.cf file
+  template:
+    src: mysql_virtual_mailbox_maps.j2
+    dest: /etc/postfix/sql/mysql_virtual_mailbox_maps.cf
+
+- name: Create mysql_virtual_alias_domain_mailbox_maps.cf file
+  template:
+    src: mysql_virtual_alias_domain_mailbox_maps.j2
+    dest: /etc/postfix/sql/mysql_virtual_alias_domain_mailbox_maps.cf
+
+- name: Create mysql_virtual_alias_maps.cf file
+  template:
+    src: mysql_virtual_alias_maps.j2
+    dest: /etc/postfix/sql/mysql_virtual_alias_maps.cf
+
+- name: Create mysql_virtual_alias_domain_maps.cf file
+  template:
+    src: mysql_virtual_alias_domain_maps.j2
+    dest: /etc/postfix/sql/mysql_virtual_alias_domain_maps.cf
+
+- name: Create mysql_virtual_alias_domain_catchall_maps.cf file
+  template:
+    src: mysql_virtual_alias_domain_catchall_maps.j2
+    dest: /etc/postfix/sql/mysql_virtual_alias_domain_catchall_maps.cf
+
+- name: Configure permissions to /etc/postfix/sql/
+  shell: |
+    setfacl -R -m u:postfix:rx /etc/postfix/sql/
+
+- name: Ensure group 2000 exists
+  group:
+    name: vmail
+    state: present
+    gid: 2000
+
+- name: Add the user vmail
+  user:
+    name: vmail
+    system: true
+    uid: 2000
+    group: 2000
+    create_home: no
+
+- name: Create the mail base location
+  file:
+    path: /var/vmail
+    state: directory
+    owner: vmail
+
+- name: Restart services - Postfix
+  service:
+    name: postfix
+    state: restarted
+
+#
+# Configure Dovecot to use MariaDB
+#
+
+- name: Configure Dovecot to use MariaDB
+  debug:
+    msg: "Configuring Dovecot to use MariaDB"
+
+- name: Enable mail_home for virtual users
+  lineinfile:
+    path: /etc/dovecot/conf.d/10-mail.conf
+    line: 'mail_home = /var/vmail/%d/%n'
+
+- name: Set auth_username_format so it won't drop the domain 
+  lineinfile:
+    path: /etc/dovecot/conf.d/10-auth.conf
+    regexp: '^auth_username_format = %n'
+    line: 'auth_username_format = %u'
+
+- name: Enable Dovecot to query user information from the database
+  lineinfile:
+    path: /etc/dovecot/conf.d/10-auth.conf
+    regexp: '^#!include auth-sql.conf.ext'
+    line: '!include auth-sql.conf.ext'
+
+- name: Disable Dovecot to query local passwd & shadow files
+  lineinfile:
+    path: /etc/dovecot/conf.d/10-auth.conf
+    regexp: '^!include auth-system.conf.ext'
+    line: '#!include auth-system.conf.ext'
+
+- name: Enable logging
+  blockinfile:
+    path: /etc/dovecot/conf.d/10-auth.conf
+    block: |
+      auth_debug = yes
+      auth_debug_passwords = yes
+
+- name: Use strong password scheme in Dovecot
+  template:
+    src: dovecot-sql.conf.ext.j2
+    dest: /etc/dovecot/dovecot-sql.conf.ext
+
+- name: Restart services - Dovecot
+  service:
+    name: dovecot
+    state: restarted
+
+- name: Domain & mailboxes configuration 
+  pause:
+    prompt: Go to https://postfixadmin.{{ domain }}/login.php and create the domain & mailboxes required
+

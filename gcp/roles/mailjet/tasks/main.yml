@@ -1,0 +1,47 @@
+---
+# Ansible role for setting up mail relay through Mailjet
+# author: Yael | @zkvL7
+#
+# annatar v1.0
+# Mailjet tasks
+
+- name: Mailjet role tasks initiated
+  debug:
+    msg: "Configure a mail relay with mailjet to improve reputation"
+
+- name: Mailjet setup
+  pause:
+    prompt: Configure sender addresses and authenticate domain on https://app.mailjet.com/dashboard
+
+- name: Configure postfix to use relay
+  lineinfile:
+    path: /etc/postfix/main.cf
+    regexp: '^relayhost ='
+    line: 'relayhost = in-v3.mailjet.com:587'
+
+- name: Configure postfix relay configurations
+  blockinfile:
+    path: /etc/postfix/main.cf
+    marker_begin: 'Mailjet'
+    marker_end: 'Mailjet'
+    block: |
+      # outbound relay configurations
+      smtp_sasl_auth_enable = yes
+      smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
+      smtp_sasl_security_options = noanonymous
+      smtp_tls_security_level = may
+      header_size_limit = 4096000
+
+- name: Create sasl_passwd file
+  template:
+    src: sasl_passwd.j2
+    dest: /etc/postfix/sasl_passwd
+    mode: '0600'
+
+- name: Create the hash db file
+  command: postmap /etc/postfix/sasl_passwd
+
+- name: Restart services - Postfix
+  service:
+    name: postfix
+    state: restarted

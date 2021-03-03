@@ -1,0 +1,10 @@
+---
+# Ansible role for setting up a postfix server
+# author: Yael | @zkvL7
+#
+# annatar v1.0
+# Postfix role variables
+
+deps_apt: [
+  postfix,
+]

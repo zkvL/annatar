@@ -1,0 +1,13 @@
+---
+# Ansible role for setting up a dovecot server
+# author: Yael | @zkvL7
+#
+# annatar v1.0
+# Dovecot role variables
+
+deps_apt: [
+  dovecot-core,
+  dovecot-imapd,
+  dovecot-lmtpd,
+  dovecot-pop3d,
+]

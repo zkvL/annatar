@@ -1,0 +1,8 @@
+---
+# Ansible role for installing pip 2 on linux
+# author: Yael | @zkvL7
+#
+# annatar v1.0
+# Python Pip2 default variables
+
+get_pip_url: "https://bootstrap.pypa.io/2.7/get-pip.py"
