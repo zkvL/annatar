@@ -272,7 +272,5 @@ Also, feel free to replicate yourself the mail server set up so you can understa
 
 - [Ubuntu mail server](https://www.linuxbabe.com/mail-server/setup-basic-postfix-mail-sever-ubuntu)
 
-## Author & Acknowlegments
-author: [Yael](https://twitter.com/_zkvL)
-
+## Acknowlegments
 All the references above helped to deploy these scripts and was a great exercise for me to start automating stuff with orchestration and config management. If you find things to improve on coding, organization, or anything else I'll be happy to know about it. 
